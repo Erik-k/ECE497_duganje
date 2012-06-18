@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>Button Box Demo</title>
+    <title>Magnetometer Demo</title>
 
     <script src="/json.js"></script> <!-- for ie -->
     <script src="/socket.io/socket.io.js"></script>
@@ -12,43 +12,43 @@
     <script src="jquery.flot.navigate.js"></script>
   </head>
   <body>
-    <h1>Button Box Demo <a href="http://Rose-Hulman.edu" target="_blank">
+    <h1>Magnetometer Demo <a href="http://Rose-Hulman.edu" target="_blank">
         <img src="RoseLogo96.png" width=200 style="float:right"></a></h1>
     <button id="connect" onClick='connect()'/>Connect</button>
     <button id="disconnect" onClick='disconnect()'>Disconnect</button>
     <span style="position:relative; left:150px">
-    Analog: <input id="ainNum" type="text" value="" style="text-align: right; width:2em">
-    gpio: <input id="gpioNum" type="text" value="" style="text-align: right; width:2em">
     i2c: <input id="i2cNum" type="text" value="" style="text-align: right; width:3em">
     </span>
 <!--    <button id="send" onClick='send()'/>Send Message</button> -->
 <table>
 <tr>
-    <td><div id="plotTop" style="width:550px;height:150px;"></div>
+    <td><div id="plot1" style="width:550px;height:150px;"></div>
 <center>samples</center></td>
 <td>
-    Update: <input id="updateTopInterval" type="text" value="" style="text-align: right; width:3em"> ms
-    <button id="zoomout" onClick='plotTop.zoomOut()'>Zoom Out</button>
+    Update: <input id="update1Interval" type="text" value="" style="text-align: right; width:3em"> ms
+    <button id="zoomout" onClick='plot1.zoomOut()'>Zoom Out</button>
 </td>
 </tr>
 <tr>
-    <td><div id="plotBot" style="width:550px;height:150px;"></div>
+    <td><div id="plot2" style="width:550px;height:150px;"></div>
 <center>samples</center></td>
 <td>
-    Update: <input id="updateBotInterval" type="text" value="" style="text-align: right; width:3em"> ms
-    <button id="zoomout" onClick='plotBot.zoomOut()'>Zoom Out</button>
+    Update: <input id="update2Interval" type="text" value="" style="text-align: right; width:3em"> ms
+    <button id="zoomout" onClick='plot2.zoomOut()'>Zoom Out</button>
+</td>
+</tr>
+<tr>
+    <td><div id="plot3" style="width:550px;height:150px;"></div>
+<center>samples</center></td>
+<td>
+    Update: <input id="update3Interval" type="text" value="" style="text-align: right; width:3em"> ms
+    <button id="zoomout" onClick='plot3.zoomOut()'>Zoom Out</button>
 </td>
 </tr>
 </table>
-<button id="led0" onClick='led(0)'/>LED 0</button>
-<button id="led1" onClick='led(1)'/>LED 1</button>
-<button id="led2" onClick='led(2)'/>LED 2</button>
-<button id="led3" onClick='led(3)'/>LED 3</button>
-<p>
 
-<b>Button Box demo from the <a href="http://elinux.org/index.php?title=Category:ECE497" target="_blank">32-bit Embedded Linux Class</a>.</b>
-Try pushing the button and turning the pot on the the breadboard.
-Try double-clicking to zoom and click and dragging to pan.
+<b>Magnetometer Demo from the <a href="http://elinux.org/index.php?title=Category:ECE497" target="_blank">32-bit Embedded Linux Class</a>.</b>
+The three plots show the values read on each axis
 </p>
     <a href="http://beagleboard.org" target="_blank">
         <img src="beagle-hd-logo.gif" width=200 align="right"></a>
@@ -56,7 +56,7 @@ Try double-clicking to zoom and click and dragging to pan.
     <a href="http://www.ti.com/sitara" target="_blank">
         <img src="hdr_ti_logo.gif" width=200 align="right"></a>
     <div><p id="message">message</p></div> 
-By <i>Mark A. Yoder</i>
+By <i>Josh Dugan</i>
 <br/>
 
     <script>
@@ -66,18 +66,13 @@ By <i>Mark A. Yoder</i>
         fs = 8000,
         Ts = 1/fs*1000,
         samples = 100,
-        plotTop,
-        plotBot,
-        ainData = [],  iain = 0, 
-        gpioData = [], igpio = 0,
+        plot1,
+        plot2,
+	plot3,
 	i2cData1 = [], ii2c1 = 0,
 	i2cData2 = [], ii2c2 = 0,
         i2cData3 = [], ii2c3 = 0,
-        gpioNum = 7,
-        ainNum  = 6,
         i2cNum  = "0x1e";
-    ainData[samples] = 0;
-    gpioData[samples] = 0;
     i2cData1[samples] = 0;
     i2cData2[samples] = 0;
     i2cData3[samples] = 0;
@@ -99,8 +94,6 @@ By <i>Mark A. Yoder</i>
         socket.on('reconnect_failed', function()
             { message("Reconnect Failed"); });
 
-        socket.on('ain',  ain);
-        socket.on('gpio', gpio);
         socket.on('i2c1',  i2c1);
 	socket.on('i2c2',  i2c2);
 	socket.on('i2c3',  i2c3);
@@ -116,37 +109,7 @@ By <i>Mark A. Yoder</i>
       socket.disconnect();
     }
 
-    function led(ledNum) {
-        socket.emit('led', ledNum);
-    }
-
     // When new data arrived, convert it and plot it.
-    function ain(data) {
-        data = atob(data)/4096 * 1.8;
-        data = isNaN(data) ? 0 : data;
-//        status_update("ain: " + data);
-        ainData[iain] = [iain, data];
-        iain++;
-        if(iain >= samples) {
-            iain = 0;
-            ainData = [];
-        }
-        plotTop.setData([ ainData, gpioData ]);
-        plotTop.draw();
-    }
-
-    function gpio(data) {
-        data = atob(data);
-//        status_update("gpio: " + data);
-        gpioData[igpio] = [igpio, data];
-        igpio++;
-        if(igpio >= samples) {
-            igpio = 0;
-            gpioData = [];
-        }
-        plotTop.setData([ ainData, gpioData ]);
-        plotTop.draw();
-    }
 
     function i2c1(data) {
 //        status_update("i2c: " + data);
@@ -162,8 +125,8 @@ By <i>Mark A. Yoder</i>
             ii2c1 = 0;
             i2cData1 = [];
         }
-        plotBot.setData([ i2cData1, i2cData2, i2cData3 ]);
-        plotBot.draw();
+        plot1.setData([ i2cData1 ]);
+        plot1.draw();
     }
 
     function i2c2(data) {
@@ -180,8 +143,8 @@ By <i>Mark A. Yoder</i>
             ii2c2 = 0;
             i2cData2 = [];
         }
-        plotBot.setData([ i2cData1, i2cData2, i2cData3 ]);
-        plotBot.draw();
+        plot2.setData([ i2cData2 ]);
+        plot2.draw();
     }
 
     function i2c3(data) {
@@ -198,8 +161,8 @@ By <i>Mark A. Yoder</i>
             ii2c3 = 0;
             i2cData3 = [];
         }
-        plotBot.setData([ i2cData1, i2cData2, i2cData3 ]);
-        plotBot.draw();
+        plot3.setData([ i2cData3 ]);
+        plot3.draw();
     }
 
     function status_update(txt){
@@ -223,52 +186,58 @@ $(function () {
     }
 
     // setup control widget
-    $("#ainNum").val(ainNum).change(function () {
-        ainNum = $(this).val();
-    });
-
-    $("#gpioNum").val(gpioNum).change(function () {
-        gpioNum = $(this).val();
-    });
-
     $("#i2cNum").val(i2cNum).change(function () {
         i2cNum = $(this).val();
     });
 
-    var updateTopInterval = 100;
-    $("#updateTopInterval").val(updateTopInterval).change(function () {
+    var update1Interval = 100;
+    $("#update1Interval").val(update1Interval).change(function () {
         var v = $(this).val();
         if (v && !isNaN(+v)) {
-            updateTopInterval = +v;
-            if (updateTopInterval < 25)
-                updateTopInterval = 25;
-            if (updateTopInterval > 2000)
-                updateTopInterval = 2000;
-            $(this).val("" + updateTopInterval);
+            update1Interval = +v;
+            if (update1Interval < 25)
+                update1Interval = 25;
+            if (update1Interval > 2000)
+                update1Interval = 2000;
+            $(this).val("" + update1Interval);
         }
     });
 
-    var updateBotInterval = 100;
-    $("#updateBotInterval").val(updateBotInterval).change(function () {
+    var update2Interval = 100;
+    $("#update2Interval").val(update2Interval).change(function () {
         var v = $(this).val();
         if (v && !isNaN(+v)) {
-            updateBotInterval = +v;
-            if (updateBotInterval < 25)
-                updateBotInterval = 25;
-            if (updateBotInterval > 2000)
-                updateBotInterval = 2000;
-            $(this).val("" + updateBotInterval);
+            update2Interval = +v;
+            if (update2Interval < 25)
+                update2Interval = 25;
+            if (update2Interval > 2000)
+                update2Interval = 2000;
+            $(this).val("" + update2Interval);
+        }
+    });
+
+
+    var update3Interval = 100;
+    $("#update3Interval").val(update3Interval).change(function () {
+        var v = $(this).val();
+        if (v && !isNaN(+v)) {
+            update3Interval = +v;
+            if (update3Interval < 25)
+                update3Interval = 25;
+            if (update3Interval > 2000)
+                update3Interval = 2000;
+            $(this).val("" + update3Interval);
         }
     });
 
     // setup plot
-    var optionsTop = {
+    var options1 = {
         series: { 
             shadowSize: 0, // drawing is faster without shadows
             points: { show: false},
             lines:  { show: true, lineWidth: 5},
         }, 
-        yaxis:	{ min: 0, max: 2, 
+        yaxis:	{ min: -1090, max: 1090, 
                   zoomRange: [10, 256], panRange: [-128, 128] },
         xaxis:	{ show: true, 
                   zoomRange: [10, 100], panRange: [0, 100] },
@@ -276,55 +245,76 @@ $(function () {
         zoom:	{ interactive: true, amount: 1.1 },
         pan:	{ interactive: true }
     };
-    plotTop = $.plot($("#plotTop"), 
+    plot1 = $.plot($("#plot1"), 
         [ 
-          { data:  initPlotData(), 
-            label: "Analog In" },
           { data:  initPlotData(),
-            label: "gpio in" }
+            label: "X-Axis"}
         ],
-            optionsTop);
+            options1);
 
-    var optionsBot = {
+    var options2 = {
         series: { 
             shadowSize: 0, // drawing is faster without shadows
             points: { show: false},
-            lines:  { show: true, lineWidth: 3},
+            lines:  { show: true, lineWidth: 5},
+	    color: 1
         }, 
         yaxis:	{ min: -1090, max: 1090, 
-                  zoomRange: [10, 256], panRange: [-1090, 1090] },
+                  zoomRange: [10, 256], panRange: [-128, 128] },
         xaxis:	{ show: true, 
                   zoomRange: [10, 100], panRange: [0, 100] },
         legend:	{ position: "sw" },
         zoom:	{ interactive: true, amount: 1.1 },
         pan:	{ interactive: true }
     };
-    plotBot = $.plot($("#plotBot"), 
+    plot2 = $.plot($("#plot2"), 
         [ 
-          { data:  initPlotData(),
-            label: "X-Axis"},
-	  { data:  initPlotData(), 
-            label: "Y-Axis" },
+          { data:  initPlotData(), 
+            label: "Y-Axis" }
+        ],
+            options2);
+
+    var options3 = {
+        series: { 
+            shadowSize: 0, // drawing is faster without shadows
+            points: { show: false},
+            lines:  { show: true, lineWidth: 5},
+	    color: 2
+        }, 
+        yaxis:	{ min: -1090, max: 1090, 
+                  zoomRange: [10, 256], panRange: [-128, 128] },
+        xaxis:	{ show: true, 
+                  zoomRange: [10, 100], panRange: [0, 100] },
+        legend:	{ position: "sw" },
+        zoom:	{ interactive: true, amount: 1.1 },
+        pan:	{ interactive: true }
+    };
+    plot3 = $.plot($("#plot3"), 
+        [ 
           { data:  initPlotData(),
             label: "Z-Axis" }
         ],
-            optionsBot);
+            options3);
 
     // Request data every updateInterval ms
-    function updateTop() {
-        socket.emit("ain",  ainNum);
-        socket.emit("gpio", gpioNum);
-        setTimeout(updateTop, updateTopInterval);
-    }
-    updateTop();
-
-    function updateBot() {
+    function update1() {
         socket.emit("i2c1",  i2cNum);
-	socket.emit("i2c2",  i2cNum);
-	socket.emit("i2c3",  i2cNum);
-	setTimeout(updateBot, updateBotInterval);
+	setTimeout(update1, update1Interval);
     }
-    updateBot();
+    update1();
+
+    function update2() {
+	socket.emit("i2c2",  i2cNum);
+	setTimeout(update2, update2Interval);
+    }
+    update2();
+
+    function update3() {
+	socket.emit("i2c3",  i2cNum);
+	setTimeout(update3, update3Interval);
+    }
+    update3();
+
 });
 </script>
 

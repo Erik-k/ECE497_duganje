@@ -55,41 +55,11 @@ io.sockets.on('connection', function (socket) {
     // now that we have our connected 'socket' object, we can 
     // define its event handlers
 
-    // Make sure some needed files are there
-    // The path to the analog devices changed from A5 to A6.  Check both.
-    var ainPath = "/sys/devices/platform/omap/tsc/";
-//    if(!fs.existsSync(ainPath)) {
-//        ainPath = "/sys/devices/platform/tsc/";
-//        if(!fs.existsSync(ainPath)) {
-//            throw "Can't find " + ainPath;
-//        }
-//    }
-    // Make sure gpio 7 is available.
-    exec("echo 7 > /sys/class/gpio/export");
-
     //set magnetometer to continuous measurement mode
     exec("i2cset -y 3 0x1e 2 0");
     
 
     // Send value every time a 'message' is received.
-    socket.on('ain', function (ainNum) {
-//        var ainPath = "/sys/devices/platform/omap/tsc/ain" + ainNum;
-        fs.readFile(ainPath + "ain" + ainNum, 'base64', function(err, data) {
-            if(err) throw err;
-            socket.emit('ain', data);
-//            console.log('emitted ain: ' + data);
-        });
-    });
-
-    socket.on('gpio', function (gpioNum) {
-        var gpioPath = "/sys/class/gpio/gpio" + gpioNum + "/value";
-        fs.readFile(gpioPath, 'base64', function(err, data) {
-            if (err) throw err;
-            socket.emit('gpio', data);
-//            console.log('emitted gpio: ' + data);
-        });
-    });
-
     socket.on('i2c2', function (i2cNum) {
 //        console.log('Got i2c request:' + i2cNum);
         exec('i2cget -y 3 '+ i2cNum + ' 5 w',
@@ -118,18 +88,6 @@ io.sockets.on('connection', function (socket) {
                 if(stderr) {console.log('stderr: ' + stderr); }
                 socket.emit('i2c1', '0x' + stdout.substring(4,6) + stdout.substring(2,4));
             });
-    });
-
-
-    socket.on('led', function (ledNum) {
-        var ledPath = "/sys/class/leds/beaglebone::usr" + ledNum + "/brightness";
-//        console.log('LED: ' + ledPath);
-        fs.readFile(ledPath, 'utf8', function (err, data) {
-            if(err) throw err;
-            data = data.substring(0,1) === "1" ? "0" : "1";
-//            console.log("LED%d: %s", ledNum, data);
-            fs.writeFile(ledPath, data);
-        });
     });
 
     socket.on('disconnect', function () {
