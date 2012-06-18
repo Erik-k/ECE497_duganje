@@ -41,6 +41,9 @@ var send404 = function (res) {
 
 server.listen(8081);
 
+//set magnetometer to continuous measurement mode
+exec("i2cset -y 3 0x1e 2 0");
+
 // socket.io, I choose you
 var io = require('socket.io').listen(server);
 io.set('log level', 2);
@@ -54,10 +57,6 @@ io.sockets.on('connection', function (socket) {
 
     // now that we have our connected 'socket' object, we can 
     // define its event handlers
-
-    //set magnetometer to continuous measurement mode
-    exec("i2cset -y 3 0x1e 2 0");
-    
 
     // Send value every time a 'message' is received.
     socket.on('i2c2', function (i2cNum) {
