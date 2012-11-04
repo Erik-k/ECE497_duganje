@@ -188,6 +188,7 @@ $(function () {
     // setup control widget
     $("#i2cNum").val(i2cNum).change(function () {
         i2cNum = $(this).val();
+	socket.emit('updatei2c', i2cNum);
     });
 
     var update1Interval = 100;
@@ -200,6 +201,7 @@ $(function () {
             if (update1Interval > 2000)
                 update1Interval = 2000;
             $(this).val("" + update1Interval);
+	    socket.emit('update1', update1Interval);
         }
     });
 
@@ -213,6 +215,7 @@ $(function () {
             if (update2Interval > 2000)
                 update2Interval = 2000;
             $(this).val("" + update2Interval);
+	    socket.emit('update2', update2Interval);
         }
     });
 
@@ -227,6 +230,7 @@ $(function () {
             if (update3Interval > 2000)
                 update3Interval = 2000;
             $(this).val("" + update3Interval);
+	    socket.emit('update3', update3Interval);
         }
     });
 
@@ -270,7 +274,7 @@ $(function () {
     plot2 = $.plot($("#plot2"), 
         [ 
           { data:  initPlotData(), 
-            label: "Y-Axis" }
+            label: "Z-Axis" }
         ],
             options2);
 
@@ -292,28 +296,9 @@ $(function () {
     plot3 = $.plot($("#plot3"), 
         [ 
           { data:  initPlotData(),
-            label: "Z-Axis" }
+            label: "Y-Axis" }
         ],
             options3);
-
-    // Request data every updateInterval ms
-    function update1() {
-        socket.emit("i2c1",  i2cNum);
-	setTimeout(update1, update1Interval);
-    }
-    update1();
-
-    function update2() {
-	socket.emit("i2c2",  i2cNum);
-	setTimeout(update2, update2Interval);
-    }
-    update2();
-
-    function update3() {
-	socket.emit("i2c3",  i2cNum);
-	setTimeout(update3, update3Interval);
-    }
-    update3();
 
 });
 </script>

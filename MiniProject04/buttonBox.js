@@ -41,6 +41,11 @@ var send404 = function (res) {
 
 server.listen(8081);
 
+var update1Interval = 100;
+var update2Interval = 100;
+var update3Interval = 100;
+var i2cNum = "0x1e"
+
 //set magnetometer to continuous measurement mode
 exec("i2cset -y 3 0x1e 2 0");
 
@@ -58,36 +63,56 @@ io.sockets.on('connection', function (socket) {
     // now that we have our connected 'socket' object, we can 
     // define its event handlers
 
+    socket.on('update1', function (interval){
+        update1Interval = interval;
+    });
+
+    socket.on('update2', function (interval){
+        update2Interval = interval;
+    });
+
+    socket.on('update3', function (interval){
+        update3Interval = interval;
+    });
+
+    socket.on('updatei2c', function (i2cnum){
+        i2cNum = i2cnum
+    });
+
+
     // Send value every time a 'message' is received.
-    socket.on('i2c2', function (i2cNum) {
+    function update2() {
 //        console.log('Got i2c request:' + i2cNum);
         exec('i2cget -y 3 '+ i2cNum + ' 5 w',
             function (error, stdout, stderr) {
                 if(error) { console.log('error: ' + error); }
                 if(stderr) {console.log('stderr: ' + stderr); }
                 socket.emit('i2c2', '0x' + stdout.substring(4,6) + stdout.substring(2,4));
+		setTimeout(update2, update2Interval);
             });
-    });
+    }
 
-        socket.on('i2c3', function (i2cNum) {
+        function update3() {
 //        console.log('Got i2c request:' + i2cNum);
         exec('i2cget -y 3 '+ i2cNum + ' 7 w',
             function (error, stdout, stderr) {
                 if(error) { console.log('error: ' + error); }
                 if(stderr) {console.log('stderr: ' + stderr); }
                 socket.emit('i2c3', '0x' + stdout.substring(4,6) + stdout.substring(2,4));
+		setTimeout(update3, update3Interval);
             });
-    });
+    }
 
-        socket.on('i2c1', function (i2cNum) {
+       function update1() {
 //        console.log('Got i2c request:' + i2cNum);
         exec('i2cget -y 3 '+ i2cNum + ' 3 w',
             function (error, stdout, stderr) {
                 if(error) { console.log('error: ' + error); }
                 if(stderr) {console.log('stderr: ' + stderr); }
                 socket.emit('i2c1', '0x' + stdout.substring(4,6) + stdout.substring(2,4));
+		setTimeout(update1, update1Interval);
             });
-    });
+    };
 
     socket.on('disconnect', function () {
         console.log("Connection " + socket.id + " terminated.");
@@ -99,5 +124,14 @@ io.sockets.on('connection', function (socket) {
 
     connectCount++;
     console.log("connectCount = " + connectCount);
+
+    
+
+    update1();
+    update2();
+    update3();
 });
+
+
+
 
