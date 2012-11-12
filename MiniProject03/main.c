@@ -69,6 +69,8 @@ int main(int argc, char *argv[])
     /* Set the signal callback for Ctrl-C */
     pSigPrev = signal( SIGINT, signal_handler );
 
+    system("echo 4000000 > /sys/class/graphics/fb2/size");
+
     system("cd ..; ./vid2Show");
 
     /* Create a thread for video */
@@ -100,7 +102,7 @@ int main(int argc, char *argv[])
 	if (getchar() == '\n'){
 		audio_env.playback = 1;
     		video_env.playback = 1;
-    		DBG( "User Input Triggered" );
+    		DBG( "User Input Triggered\n" );
 	}
     }
 	
