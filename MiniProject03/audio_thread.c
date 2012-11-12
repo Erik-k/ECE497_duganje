@@ -37,8 +37,32 @@
 
 //*  Parameters for audio thread execution **
 #define     BLOCKSIZE        48000
-#define     PLAYBACK_SIZE    160000
+#define     PLAYBACK_SIZE    80000
 
+//global variables
+int playback_ptr = 0;
+int bytes_copied = 0;
+
+void audio_process(short *output_buffer, short *input_buffer, short *playback_buffer, audio_thread_env * envPtr, int blksize)
+{
+	int j;
+	for (j=0; j<blksize; j++){
+	    	if (envPtr->playback){
+			output_buffer[j] = input_buffer[j] + playback_buffer[(playback_ptr + j) % PLAYBACK_SIZE];
+			bytes_copied++;
+			if (bytes_copied >= PLAYBACK_SIZE){
+				envPtr->playback = 0;
+				bytes_copied = 0;
+				DBG("Playback Ended\n");
+			}
+	   	}else{
+			output_buffer[j] = input_buffer[j];
+		}
+		playback_buffer[(playback_ptr + j) % PLAYBACK_SIZE] = input_buffer[j];
+	}
+	playback_ptr  = (playback_ptr + j) % PLAYBACK_SIZE;
+
+}
 
 //*******************************************************************************
 //*  audio_thread_fxn                                                          **
@@ -134,7 +158,7 @@ void *audio_thread_fxn( void *envByRef )
         	goto  cleanup ;
     	}
 
-    if( ( playback_buffer = malloc( PLAYBACK_SIZE ) ) == NULL )
+    if( ( playback_buffer = malloc( PLAYBACK_SIZE * 2) ) == NULL )
     	{
         	ERR( "Failed to allocate memory for playback block (%d)\n", blksize );
         	status = AUDIO_THREAD_FAILURE;
@@ -155,7 +179,7 @@ void *audio_thread_fxn( void *envByRef )
     // Get things started by sending some silent buffers out.
     int i;
     memset(input_buffer, 0, blksize);		// Clear the buffer
-    memset(playback_buffer, 0, PLAYBACK_SIZE);
+    memset(playback_buffer, 0, PLAYBACK_SIZE * 2);
 
     while( snd_pcm_readi(pcm_input_handle, input_buffer, exact_bufsize) < 0 )
         {
@@ -178,8 +202,6 @@ void *audio_thread_fxn( void *envByRef )
     DBG( "Entering audio_thread_fxn processing loop\n" );
 
     int j;
-    int playback_ptr = 0;
-    int bytes_copied = 0;
     while( !envPtr->quit )
     {
     	
@@ -192,20 +214,7 @@ void *audio_thread_fxn( void *envByRef )
             ERR( "Error reading the data from file descriptor %d\n", (int) pcm_input_handle );
 	}
 	
-	for (j=0; j<blksize; j++){
-	    	if (envPtr->playback){
-			output_buffer[j] = input_buffer[j] + playback_buffer[(playback_ptr + j) % PLAYBACK_SIZE];
-			bytes_copied++;
-			if (bytes_copied >= PLAYBACK_SIZE){
-				envPtr->playback = 0;
-				bytes_copied = 0;
-			}
-	   	}else{
-			output_buffer[j] = input_buffer[j];
-		}
-		playback_buffer[(playback_ptr + j) % PLAYBACK_SIZE] = input_buffer[j];
-	}
-	playback_ptr  = (playback_ptr + j) % PLAYBACK_SIZE;
+	audio_process((short *)output_buffer, (short *)input_buffer, (short *)playback_buffer, envPtr, blksize/2);
 
 	
 
