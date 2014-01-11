@@ -47,7 +47,7 @@ var update3Interval = 100;
 var i2cNum = "0x1e"
 
 //set magnetometer to continuous measurement mode
-exec("i2cset -y 3 0x1e 2 0");
+exec("i2cset -y 1 0x1e 2 0");
 
 // socket.io, I choose you
 var io = require('socket.io').listen(server);
@@ -83,7 +83,7 @@ io.sockets.on('connection', function (socket) {
     // Send value every time a 'message' is received.
     function update2() {
 //        console.log('Got i2c request:' + i2cNum);
-        exec('i2cget -y 3 '+ i2cNum + ' 5 w',
+        exec('i2cget -y 1 '+ i2cNum + ' 5 w',
             function (error, stdout, stderr) {
                 if(error) { console.log('error: ' + error); }
                 if(stderr) {console.log('stderr: ' + stderr); }
@@ -94,7 +94,7 @@ io.sockets.on('connection', function (socket) {
 
         function update3() {
 //        console.log('Got i2c request:' + i2cNum);
-        exec('i2cget -y 3 '+ i2cNum + ' 7 w',
+        exec('i2cget -y 1 '+ i2cNum + ' 7 w',
             function (error, stdout, stderr) {
                 if(error) { console.log('error: ' + error); }
                 if(stderr) {console.log('stderr: ' + stderr); }
@@ -105,7 +105,7 @@ io.sockets.on('connection', function (socket) {
 
        function update1() {
 //        console.log('Got i2c request:' + i2cNum);
-        exec('i2cget -y 3 '+ i2cNum + ' 3 w',
+        exec('i2cget -y 1 '+ i2cNum + ' 3 w',
             function (error, stdout, stderr) {
                 if(error) { console.log('error: ' + error); }
                 if(stderr) {console.log('stderr: ' + stderr); }
