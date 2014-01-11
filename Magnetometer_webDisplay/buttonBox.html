@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Magnetometer Demo</title>
+
+    <script src="/json.js"></script> <!-- for ie -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <link href="layout.css" rel="stylesheet" type="text/css">
+    <script src="jquery.js"></script>
+    <script src="jquery.flot.js"></script>
+    <script src="jquery.flot.navigate.js"></script>
+  </head>
+  <body>
+    <h1>Magnetometer Demo <a href="http://Rose-Hulman.edu" target="_blank">
+        <img src="RoseLogo96.png" width=200 style="float:right"></a></h1>
+    <button id="connect" onClick='connect()'/>Connect</button>
+    <button id="disconnect" onClick='disconnect()'>Disconnect</button>
+    <span style="position:relative; left:150px">
+    i2c: <input id="i2cNum" type="text" value="" style="text-align: right; width:3em">
+    </span>
+<!--    <button id="send" onClick='send()'/>Send Message</button> -->
+<table>
+<tr>
+    <td><div id="plot1" style="width:550px;height:150px;"></div>
+<center>samples</center></td>
+<td>
+    Update: <input id="update1Interval" type="text" value="" style="text-align: right; width:3em"> ms
+    <button id="zoomout" onClick='plot1.zoomOut()'>Zoom Out</button>
+</td>
+</tr>
+<tr>
+    <td><div id="plot2" style="width:550px;height:150px;"></div>
+<center>samples</center></td>
+<td>
+    Update: <input id="update2Interval" type="text" value="" style="text-align: right; width:3em"> ms
+    <button id="zoomout" onClick='plot2.zoomOut()'>Zoom Out</button>
+</td>
+</tr>
+<tr>
+    <td><div id="plot3" style="width:550px;height:150px;"></div>
+<center>samples</center></td>
+<td>
+    Update: <input id="update3Interval" type="text" value="" style="text-align: right; width:3em"> ms
+    <button id="zoomout" onClick='plot3.zoomOut()'>Zoom Out</button>
+</td>
+</tr>
+</table>
+
+<b>Magnetometer Demo from the <a href="http://elinux.org/index.php?title=Category:ECE497" target="_blank">32-bit Embedded Linux Class</a>.</b>
+The three plots show the values read on each axis
+</p>
+    <a href="http://beagleboard.org" target="_blank">
+        <img src="beagle-hd-logo.gif" width=200 align="right"></a>
+    <div><p id="status">Waiting for input</p></div>
+    <a href="http://www.ti.com/sitara" target="_blank">
+        <img src="hdr_ti_logo.gif" width=200 align="right"></a>
+    <div><p id="message">message</p></div> 
+By <i>Josh Dugan</i>
+<br/>
+
+    <script>
+
+    var socket;
+    var firstconnect = true,
+        fs = 8000,
+        Ts = 1/fs*1000,
+        samples = 100,
+        plot1,
+        plot2,
+	plot3,
+	i2cData1 = [], ii2c1 = 0,
+	i2cData2 = [], ii2c2 = 0,
+        i2cData3 = [], ii2c3 = 0,
+        i2cNum  = "0x1e";
+    i2cData1[samples] = 0;
+    i2cData2[samples] = 0;
+    i2cData3[samples] = 0;
+
+    function connect() {
+      if(firstconnect) {
+        socket = io.connect(null);
+
+        socket.on('message', function(data)
+            { status_update("Received: message");});
+        socket.on('connect', function()
+            { status_update("Connected to Server"); });
+        socket.on('disconnect', function()
+            { status_update("Disconnected from Server"); });
+        socket.on('reconnect', function()
+            { status_update("Reconnected to Server"); });
+        socket.on('reconnecting', function( nextRetry )
+            { status_update("Reconnecting in " + nextRetry/1000 + " s"); });
+        socket.on('reconnect_failed', function()
+            { message("Reconnect Failed"); });
+
+        socket.on('i2c1',  i2c1);
+	socket.on('i2c2',  i2c2);
+	socket.on('i2c3',  i2c3);
+
+        firstconnect = false;
+      }
+      else {
+        socket.socket.reconnect();
+      }
+    }
+
+    function disconnect() {
+      socket.disconnect();
+    }
+
+    // When new data arrived, convert it and plot it.
+
+    function i2c1(data) {
+//        status_update("i2c: " + data);
+        // Convert to F
+        data = parseInt(data);
+	if(data > 32000) {
+		data = data -65535;
+	}
+//        status_update("i2c: " + data);
+        i2cData1[ii2c1] = [ii2c1, data];
+        ii2c1++;
+        if(ii2c1 >= samples) {
+            ii2c1 = 0;
+            i2cData1 = [];
+        }
+        plot1.setData([ i2cData1 ]);
+        plot1.draw();
+    }
+
+    function i2c2(data) {
+//        status_update("i2c: " + data);
+        // Convert to F
+        data = parseInt(data);
+	if(data > 32000) {
+		data = data -65535;
+	}
+//        status_update("i2c: " + data);
+        i2cData2[ii2c2] = [ii2c2, data];
+        ii2c2++;
+        if(ii2c2 >= samples) {
+            ii2c2 = 0;
+            i2cData2 = [];
+        }
+        plot2.setData([ i2cData2 ]);
+        plot2.draw();
+    }
+
+    function i2c3(data) {
+//        status_update("i2c: " + data);
+        // Convert to F
+        data = parseInt(data);
+	if(data > 32000) {
+		data = data -65535;
+	}
+//        status_update("i2c: " + data);
+        i2cData3[ii2c3] = [ii2c3, data];
+        ii2c3++;
+        if(ii2c3 >= samples) {
+            ii2c3 = 0;
+            i2cData3 = [];
+        }
+        plot3.setData([ i2cData3 ]);
+        plot3.draw();
+    }
+
+    function status_update(txt){
+      document.getElementById('status').innerHTML = txt;
+    }
+
+    function send(){
+      socket.emit("ain", "Hello Server!");    
+    };
+
+    connect();
+
+$(function () {
+
+    function initPlotData() {
+        // zip the generated y values with the x values
+        var result = [];
+        for (var i = 0; i <= samples; i++)
+            result[i] = [i, 0];
+        return result;
+    }
+
+    // setup control widget
+    $("#i2cNum").val(i2cNum).change(function () {
+        i2cNum = $(this).val();
+	socket.emit('updatei2c', i2cNum);
+    });
+
+    var update1Interval = 100;
+    $("#update1Interval").val(update1Interval).change(function () {
+        var v = $(this).val();
+        if (v && !isNaN(+v)) {
+            update1Interval = +v;
+            if (update1Interval < 25)
+                update1Interval = 25;
+            if (update1Interval > 2000)
+                update1Interval = 2000;
+            $(this).val("" + update1Interval);
+	    socket.emit('update1', update1Interval);
+        }
+    });
+
+    var update2Interval = 100;
+    $("#update2Interval").val(update2Interval).change(function () {
+        var v = $(this).val();
+        if (v && !isNaN(+v)) {
+            update2Interval = +v;
+            if (update2Interval < 25)
+                update2Interval = 25;
+            if (update2Interval > 2000)
+                update2Interval = 2000;
+            $(this).val("" + update2Interval);
+	    socket.emit('update2', update2Interval);
+        }
+    });
+
+
+    var update3Interval = 100;
+    $("#update3Interval").val(update3Interval).change(function () {
+        var v = $(this).val();
+        if (v && !isNaN(+v)) {
+            update3Interval = +v;
+            if (update3Interval < 25)
+                update3Interval = 25;
+            if (update3Interval > 2000)
+                update3Interval = 2000;
+            $(this).val("" + update3Interval);
+	    socket.emit('update3', update3Interval);
+        }
+    });
+
+    // setup plot
+    var options1 = {
+        series: { 
+            shadowSize: 0, // drawing is faster without shadows
+            points: { show: false},
+            lines:  { show: true, lineWidth: 5},
+        }, 
+        yaxis:	{ min: -1090, max: 1090, 
+                  zoomRange: [10, 256], panRange: [-128, 128] },
+        xaxis:	{ show: true, 
+                  zoomRange: [10, 100], panRange: [0, 100] },
+        legend:	{ position: "sw" },
+        zoom:	{ interactive: true, amount: 1.1 },
+        pan:	{ interactive: true }
+    };
+    plot1 = $.plot($("#plot1"), 
+        [ 
+          { data:  initPlotData(),
+            label: "X-Axis"}
+        ],
+            options1);
+
+    var options2 = {
+        series: { 
+            shadowSize: 0, // drawing is faster without shadows
+            points: { show: false},
+            lines:  { show: true, lineWidth: 5},
+	    color: 1
+        }, 
+        yaxis:	{ min: -1090, max: 1090, 
+                  zoomRange: [10, 256], panRange: [-128, 128] },
+        xaxis:	{ show: true, 
+                  zoomRange: [10, 100], panRange: [0, 100] },
+        legend:	{ position: "sw" },
+        zoom:	{ interactive: true, amount: 1.1 },
+        pan:	{ interactive: true }
+    };
+    plot2 = $.plot($("#plot2"), 
+        [ 
+          { data:  initPlotData(), 
+            label: "Z-Axis" }
+        ],
+            options2);
+
+    var options3 = {
+        series: { 
+            shadowSize: 0, // drawing is faster without shadows
+            points: { show: false},
+            lines:  { show: true, lineWidth: 5},
+	    color: 2
+        }, 
+        yaxis:	{ min: -1090, max: 1090, 
+                  zoomRange: [10, 256], panRange: [-128, 128] },
+        xaxis:	{ show: true, 
+                  zoomRange: [10, 100], panRange: [0, 100] },
+        legend:	{ position: "sw" },
+        zoom:	{ interactive: true, amount: 1.1 },
+        pan:	{ interactive: true }
+    };
+    plot3 = $.plot($("#plot3"), 
+        [ 
+          { data:  initPlotData(),
+            label: "Y-Axis" }
+        ],
+            options3);
+
+});
+</script>
+
+  </body>
+</html>
