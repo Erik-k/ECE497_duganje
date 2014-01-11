@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 	short x_val, y_val, z_val;
 
 	if(argc < 2) {
-		fprintf(stderr, "Usage:  %s <i2c-bus> <i2c-address>\n", argv[0]);
+		fprintf(stderr, "Usage:  %s <i2c-bus> <i2c-address>, where address is in decimal.\n", argv[0]);
 		exit(1);
 	}
 
